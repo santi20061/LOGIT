@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "nombre": "Juan Pérez",
+    "telefono": "3001234567",
+    "email": "juan@email.com",
+    "direccion": "Calle 5 #10-20, Villavicencio",
+    "ciudad": "Villavicencio",
+    "fechaRegistro": "2026-09-15"
+  },
+  {
+    "id": 2,
+    "nombre": "María García",
+    "telefono": "3214717259",
+    "email": "maria@email.com",
+    "direccion": "Carrera 7 #15-30, Villavicencio",
+    "ciudad": "Villavicencio",
+    "fechaRegistro": "2026-09-16"
+  },
+  {
+    "id": 3,
+    "nombre": "Santiago Mora",
+    "telefono": "3023441842",
+    "email": "santiagomora200631@gmail.com",
+    "direccion": "Calle 23 B Sur # 44-44",
+    "ciudad": "Villavicencio",
+    "fechaRegistro": "2026-10-03"
+  }
+]

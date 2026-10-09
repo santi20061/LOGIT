@@ -1,0 +1,117 @@
+<div class="dashboard">
+  <h2>📊 Dashboard - LOGIT</h2>
+  
+  <div class="grid grid-3">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">👥 Total Clientes</h3>
+      </div>
+      <div class="card-body">
+        <div id="totalClientes" style="font-size: 32px; font-weight: bold; color: #2563eb;">-</div>
+        <small>Clientes registrados</small>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">📦 Total Paquetes</h3>
+      </div>
+      <div class="card-body">
+        <div id="totalPaquetes" style="font-size: 32px; font-weight: bold; color: #10b981;">-</div>
+        <small>Paquetes en sistema</small>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">🚚 Total Vehículos</h3>
+      </div>
+      <div class="card-body">
+        <div id="totalVehiculos" style="font-size: 32px; font-weight: bold; color: #f59e0b;">-</div>
+        <small>Vehículos disponibles</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-3" style="margin-top: 20px;">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">👨‍✈️ Total Conductores</h3>
+      </div>
+      <div class="card-body">
+        <div id="totalConductores" style="font-size: 32px; font-weight: bold; color: #06b6d4;">-</div>
+        <small>Conductores activos</small>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">🗺️ Total Rutas</h3>
+      </div>
+      <div class="card-body">
+        <div id="totalRutas" style="font-size: 32px; font-weight: bold; color: #8b5cf6;">-</div>
+        <small>Rutas creadas</small>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">✅ Total Entregas</h3>
+      </div>
+      <div class="card-body">
+        <div id="totalEntregas" style="font-size: 32px; font-weight: bold; color: #ec4899;">-</div>
+        <small>Entregas registradas</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 30px;">
+    <div class="card-header">
+      <h3 class="card-title">📈 Estado General del Sistema</h3>
+    </div>
+    <div class="card-body">
+      <p><strong>Estado:</strong> <span class="badge badge-success">Operativo</span></p>
+      <p><strong>Última actualización:</strong> <span id="ultimaActualizacion">-</span></p>
+      <p><strong>Servidor:</strong> <span class="badge badge-info">Conectado</span></p>
+      <p><strong>Base de Datos:</strong> <span class="badge badge-success">Activa</span></p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+      <h3 class="card-title">ℹ️ Información del Sistema</h3>
+    </div>
+    <div class="card-body">
+      <p>Bienvenido a <strong>LOGIT</strong> - Sistema de Gestión de Paquetes y Rutas</p>
+      <p>Utiliza el menú lateral para acceder a los diferentes módulos del sistema.</p>
+      <p>Para más información, consulta la documentación del proyecto.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+async function inicializarDashboard() {
+  try {
+    const clientes = await obtenerClientes();
+    const paquetes = await obtenerPaquetes();
+    const vehiculos = await obtenerVehiculos();
+    const conductores = await obtenerConductores();
+    const rutas = await obtenerRutas();
+    const entregas = await obtenerEntregas();
+
+    document.getElementById('totalClientes').textContent = clientes.data ? clientes.data.length : 0;
+    document.getElementById('totalPaquetes').textContent = paquetes.data ? paquetes.data.length : 0;
+    document.getElementById('totalVehiculos').textContent = vehiculos.data ? vehiculos.data.length : 0;
+    document.getElementById('totalConductores').textContent = conductores.data ? conductores.data.length : 0;
+    document.getElementById('totalRutas').textContent = rutas.data ? rutas.data.length : 0;
+    document.getElementById('totalEntregas').textContent = entregas.data ? entregas.data.length : 0;
+
+    const ahora = new Date();
+    document.getElementById('ultimaActualizacion').textContent = ahora.toLocaleString('es-CO');
+  } catch (error) {
+    console.error('Error cargando dashboard:', error);
+  }
+}
+
+inicializarDashboard();
+</script>

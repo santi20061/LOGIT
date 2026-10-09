@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOGIT - Sistema de Gestión de Paquetes y Rutas</title>
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <h1>📦 LOGIT</h1>
+    </div>
+    <div id="fecha-hora"></div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div class="container-principal">
+    <!-- SIDEBAR -->
+    <aside>
+      <button class="menu-btn active" data-modulo="dashboard">📊 Dashboard</button>
+      <button class="menu-btn" data-modulo="clientes">👥 Clientes</button>
+      <button class="menu-btn" data-modulo="paquetes">📦 Paquetes</button>
+      <button class="menu-btn" data-modulo="vehiculos">🚚 Vehículos</button>
+      <button class="menu-btn" data-modulo="conductores">👨‍✈️ Conductores</button>
+      <button class="menu-btn" data-modulo="rutas">🗺️ Rutas</button>
+      <button class="menu-btn" data-modulo="entregas">✅ Entregas</button>
+      <button class="menu-btn" data-modulo="reportes">📈 Reportes</button>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main>
+      <div id="contenido">
+        <div class="loading"><p>Cargando...</p></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2026 LOGIT - Sistema de Gestión de Paquetes y Rutas</p>
+  </footer>
+
+  <!-- MODAL -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-titulo">Título</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modal-mensaje">Mensaje</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cerrar">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/clientes.js"></script>
+  <script src="js/paquetes.js"></script>
+  <script src="js/vehiculos.js"></script>
+  <script src="js/conductores.js"></script>
+  <script src="js/rutas.js"></script>
+  <script src="js/entregas.js"></script>
+</body>
+</html>

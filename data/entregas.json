@@ -1,0 +1,15 @@
+[
+  {
+    "id": 1,
+    "paqueteId": 2,
+    "rutaId": 1,
+    "conductorId": 2,
+    "estado": "En tránsito",
+    "fechaCreacion": "2026-09-20",
+    "fechaEntrega": null,
+    "horaEntrega": null,
+    "firmaRecibido": null,
+    "observaciones": "En camino al destino",
+    "ubicacionActual": "Calle 8, Villavicencio"
+  }
+]

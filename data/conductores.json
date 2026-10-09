@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1,
+    "nombre": "Carlos Rodríguez",
+    "cedula": "1023456789",
+    "telefono": "3101234567",
+    "email": "carlos@logit.com",
+    "licencia": "CC-123456",
+    "categorialicencia": "C",
+    "estado": "Disponible",
+    "vehiculoId": 1,
+    "fechaRegistro": "2026-09-01",
+    "observaciones": "Experiencia 5 años"
+  },
+  {
+    "id": 2,
+    "nombre": "Diego Ramírez",
+    "cedula": "1098765432",
+    "telefono": "3209876543",
+    "email": "diego@logit.com",
+    "licencia": "CC-654321",
+    "categorialicencia": "C",
+    "estado": "En ruta",
+    "vehiculoId": 2,
+    "fechaRegistro": "2026-09-05",
+    "observaciones": "Excelente record de entregas"
+  }
+]

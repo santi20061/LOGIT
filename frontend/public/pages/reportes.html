@@ -1,0 +1,189 @@
+<div class="reportes-container">
+  <h2>📈 Reportes y Estadísticas</h2>
+  
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">📊 Paquetes por Estado</h3>
+      </div>
+      <div class="card-body">
+        <div id="reportePaquetesEstado"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">🚚 Vehículos por Estado</h3>
+      </div>
+      <div class="card-body">
+        <div id="reporteVehiculosEstado"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top: 20px;">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">👨‍✈️ Conductores por Estado</h3>
+      </div>
+      <div class="card-body">
+        <div id="reporteConductoresEstado"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">🗺️ Rutas por Estado</h3>
+      </div>
+      <div class="card-body">
+        <div id="reporteRutasEstado"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+      <h3 class="card-title">📥 Exportar Datos</h3>
+    </div>
+    <div class="card-body">
+      <p>Descarga los datos en formato CSV para análisis:</p>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="exportarClientesCSV()">📥 Clientes</button>
+        <button class="btn btn-primary" onclick="exportarPaquetesCSV()">📥 Paquetes</button>
+        <button class="btn btn-primary" onclick="exportarVehiculosCSV()">📥 Vehículos</button>
+        <button class="btn btn-primary" onclick="exportarConductoresCSV()">📥 Conductores</button>
+        <button class="btn btn-primary" onclick="exportarRutasCSV()">📥 Rutas</button>
+        <button class="btn btn-primary" onclick="exportarEntregasCSV()">📥 Entregas</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function inicializarReportes() {
+  await cargarReportePaquetes();
+  await cargarReporteVehiculos();
+  await cargarReporteConductores();
+  await cargarReporteRutas();
+}
+
+async function cargarReportePaquetes() {
+  const resultado = await obtenerPaquetes();
+  if (!resultado.success) return;
+
+  const estados = {};
+  resultado.data.forEach(p => {
+    estados[p.estado] = (estados[p.estado] || 0) + 1;
+  });
+
+  let html = '<ul style="list-style: none;">';
+  Object.entries(estados).forEach(([estado, cantidad]) => {
+    html += `<li style="padding: 5px 0;">
+      ${obtenerBadgeEstado(estado)} <strong>${cantidad}</strong>
+    </li>`;
+  });
+  html += '</ul>';
+  document.getElementById('reportePaquetesEstado').innerHTML = html;
+}
+
+async function cargarReporteVehiculos() {
+  const resultado = await obtenerVehiculos();
+  if (!resultado.success) return;
+
+  const estados = {};
+  resultado.data.forEach(v => {
+    estados[v.estado] = (estados[v.estado] || 0) + 1;
+  });
+
+  let html = '<ul style="list-style: none;">';
+  Object.entries(estados).forEach(([estado, cantidad]) => {
+    html += `<li style="padding: 5px 0;">
+      ${obtenerBadgeEstado(estado)} <strong>${cantidad}</strong>
+    </li>`;
+  });
+  html += '</ul>';
+  document.getElementById('reporteVehiculosEstado').innerHTML = html;
+}
+
+async function cargarReporteConductores() {
+  const resultado = await obtenerConductores();
+  if (!resultado.success) return;
+
+  const estados = {};
+  resultado.data.forEach(c => {
+    estados[c.estado] = (estados[c.estado] || 0) + 1;
+  });
+
+  let html = '<ul style="list-style: none;">';
+  Object.entries(estados).forEach(([estado, cantidad]) => {
+    html += `<li style="padding: 5px 0;">
+      ${obtenerBadgeEstado(estado)} <strong>${cantidad}</strong>
+    </li>`;
+  });
+  html += '</ul>';
+  document.getElementById('reporteConductoresEstado').innerHTML = html;
+}
+
+async function cargarReporteRutas() {
+  const resultado = await obtenerRutas();
+  if (!resultado.success) return;
+
+  const estados = {};
+  resultado.data.forEach(r => {
+    estados[r.estado] = (estados[r.estado] || 0) + 1;
+  });
+
+  let html = '<ul style="list-style: none;">';
+  Object.entries(estados).forEach(([estado, cantidad]) => {
+    html += `<li style="padding: 5px 0;">
+      ${obtenerBadgeEstado(estado)} <strong>${cantidad}</strong>
+    </li>`;
+  });
+  html += '</ul>';
+  document.getElementById('reporteRutasEstado').innerHTML = html;
+}
+
+async function exportarClientesCSV() {
+  const resultado = await obtenerClientes();
+  if (resultado.success) {
+    exportarCSV(resultado.data, 'clientes.csv');
+  }
+}
+
+async function exportarPaquetesCSV() {
+  const resultado = await obtenerPaquetes();
+  if (resultado.success) {
+    exportarCSV(resultado.data, 'paquetes.csv');
+  }
+}
+
+async function exportarVehiculosCSV() {
+  const resultado = await obtenerVehiculos();
+  if (resultado.success) {
+    exportarCSV(resultado.data, 'vehiculos.csv');
+  }
+}
+
+async function exportarConductoresCSV() {
+  const resultado = await obtenerConductores();
+  if (resultado.success) {
+    exportarCSV(resultado.data, 'conductores.csv');
+  }
+}
+
+async function exportarRutasCSV() {
+  const resultado = await obtenerRutas();
+  if (resultado.success) {
+    exportarCSV(resultado.data, 'rutas.csv');
+  }
+}
+
+async function exportarEntregasCSV() {
+  const resultado = await obtenerEntregas();
+  if (resultado.success) {
+    exportarCSV(resultado.data, 'entregas.csv');
+  }
+}
+
+inicializarReportes();
+</script>

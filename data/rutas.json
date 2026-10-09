@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "nombre": "Ruta Centro-Este",
+    "descripcion": "Entrega en el centro y zona este",
+    "conductorId": 2,
+    "vehiculoId": 2,
+    "estado": "En progreso",
+    "fechaCreacion": "2026-09-20",
+    "horaInicio": "08:00",
+    "horaFin": null,
+    "paquetesAsignados": [
+      2
+    ],
+    "zonas": [
+      "Centro",
+      "Este"
+    ]
+  },
+  {
+    "id": 2,
+    "nombre": "Ruta Sur-Oeste",
+    "descripcion": "Entrega en zona sur y oeste",
+    "conductorId": 1,
+    "vehiculoId": 1,
+    "estado": "En progreso",
+    "fechaCreacion": "2026-09-21",
+    "horaInicio": "14:00",
+    "horaFin": null,
+    "paquetesAsignados": [
+      1
+    ],
+    "zonas": [
+      "Sur",
+      "Oeste"
+    ]
+  }
+]
