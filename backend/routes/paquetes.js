@@ -1,12 +1,13 @@
 const express = require('express');
-const router = express.Router();
 const paqueteController = require('../controllers/paqueteController');
+
+const router = express.Router();
 
 router.get('/', paqueteController.obtenerTodos);
 router.get('/:id', paqueteController.obtenerPorId);
 router.post('/', paqueteController.crear);
-router.put('/:id/estado', paqueteController.actualizarEstado);
-router.put('/:id/ruta', paqueteController.asignarARuta);
+router.put('/:id', paqueteController.actualizar);
+router.put('/:id/coordinar-devolucion', paqueteController.coordinarDevolucion);
 router.delete('/:id', paqueteController.eliminar);
 
 module.exports = router;

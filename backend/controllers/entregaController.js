@@ -1,134 +1,158 @@
-const { leerJSON, escribirJSON, obtenerSiguienteId } = require('../utils/fileHandler');
+const { Entrega, Paquete, Ruta, Conductor } = require('../models');
 
-exports.obtenerTodos = (req, res) => {
+exports.obtenerTodos = async (req, res) => {
   try {
-    const entregas = leerJSON('entregas');
-    const paquetes = leerJSON('paquetes');
-    const conductores = leerJSON('conductores');
-
-    const entregasEnriquecidas = entregas.map(e => {
-      const paquete = paquetes.find(p => p.id === e.paqueteId);
-      const conductor = conductores.find(c => c.id === e.conductorId);
-      return {
-        ...e,
-        numeroSeguimiento: paquete?.numeroSeguimiento || 'N/A',
-        conductorNombre: conductor?.nombre || 'N/A'
-      };
+    const entregas = await Entrega.findAll({
+      include: [
+        { model: Paquete, attributes: ['numeroSeguimiento', 'destino'] },
+        { model: Ruta, attributes: ['nombre', 'estado'] },
+        { model: Conductor, attributes: ['nombre'] }
+      ],
+      order: [['id', 'DESC']]
     });
 
-    res.json({ success: true, data: entregasEnriquecidas, total: entregas.length });
+    res.json({ success: true, total: entregas.length, data: entregas });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener entregas' });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.obtenerPorId = (req, res) => {
+exports.obtenerPorId = async (req, res) => {
   try {
-    const entregas = leerJSON('entregas');
-    const entrega = entregas.find(e => e.id === parseInt(req.params.id));
-    if (!entrega) return res.status(404).json({ success: false, message: 'Entrega no encontrada' });
+    const entrega = await Entrega.findByPk(req.params.id, {
+      include: [{ model: Paquete }, { model: Ruta }, { model: Conductor }]
+    });
+
+    if (!entrega) {
+      return res.status(404).json({ success: false, error: 'Entrega no encontrada' });
+    }
+
     res.json({ success: true, data: entrega });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener entrega' });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.crear = (req, res) => {
-  try {
-    const { paqueteId, rutaId, conductorId, ubicacionActual, observaciones } = req.body;
+exports.crear = async (req, res) => {
+  return res.status(409).json({
+    success: false,
+    error: 'Las entregas se generan automáticamente al iniciar una ruta asignada desde Despacho.',
+  });
+};
 
-    if (!paqueteId || !rutaId || !conductorId) {
-      return res.status(400).json({ success: false, message: 'Faltan campos requeridos' });
+exports.actualizar = async (req, res) => {
+  try {
+    const entrega = await Entrega.findByPk(req.params.id);
+    if (!entrega) {
+      return res.status(404).json({ success: false, error: 'Entrega no encontrada' });
     }
 
-    const entregas = leerJSON('entregas');
-    const nuevaEntrega = {
-      id: obtenerSiguienteId(entregas),
-      paqueteId: parseInt(paqueteId),
-      rutaId: parseInt(rutaId),
-      conductorId: parseInt(conductorId),
-      estado: 'En tránsito',
-      fechaCreacion: new Date().toISOString().split('T')[0],
-      fechaEntrega: null,
-      horaEntrega: null,
-      firmaRecibido: null,
-      observaciones: observaciones || '',
-      ubicacionActual: ubicacionActual || ''
-    };
+    if ('estado' in req.body || 'firmaRecibido' in req.body || 'fechaEntrega' in req.body) {
+      return res.status(400).json({
+        success: false,
+        error: 'El administrador no puede confirmar la recepción del cliente.',
+      });
+    }
 
-    entregas.push(nuevaEntrega);
-    escribirJSON('entregas', entregas);
+    const cambios = {};
+    if (typeof req.body.ubicacionActual === 'string' && req.body.ubicacionActual.trim()) {
+      cambios.ubicacionActual = req.body.ubicacionActual.trim();
+    }
+    if (typeof req.body.observaciones === 'string') {
+      cambios.observaciones = req.body.observaciones.trim();
+    }
+    if (Object.keys(cambios).length === 0) {
+      return res.status(400).json({ success: false, error: 'No hay cambios válidos para guardar.' });
+    }
+    await entrega.update(cambios);
 
-    res.status(201).json({ success: true, message: 'Entrega registrada', data: nuevaEntrega });
+    res.json({
+      success: true,
+      message: 'Entrega actualizada exitosamente',
+      data: entrega
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear entrega' });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.actualizarUbicacion = (req, res) => {
+exports.actualizarUbicacion = async (req, res) => {
   try {
-    const { id } = req.params;
     const { ubicacionActual } = req.body;
 
-    const entregas = leerJSON('entregas');
-    const index = entregas.findIndex(e => e.id === parseInt(id));
-
-    if (index === -1) return res.status(404).json({ success: false, message: 'Entrega no encontrada' });
-
-    entregas[index].ubicacionActual = ubicacionActual;
-    escribirJSON('entregas', entregas);
-
-    res.json({ success: true, message: 'Ubicación actualizada', data: entregas[index] });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar ubicación' });
-  }
-};
-
-exports.completarEntrega = (req, res) => {
-  try {
-    const { id } = req.params;
-    const { firmaRecibido, observaciones } = req.body;
-
-    const entregas = leerJSON('entregas');
-    const index = entregas.findIndex(e => e.id === parseInt(id));
-
-    if (index === -1) return res.status(404).json({ success: false, message: 'Entrega no encontrada' });
-
-    entregas[index].estado = 'Entregado';
-    entregas[index].fechaEntrega = new Date().toISOString().split('T')[0];
-    entregas[index].horaEntrega = new Date().toTimeString().split(' ')[0];
-    entregas[index].firmaRecibido = firmaRecibido || 'Sin firma digital';
-    if (observaciones) entregas[index].observaciones = observaciones;
-
-    // Actualizar el estado del paquete también
-    const paquetes = leerJSON('paquetes');
-    const paqueteIndex = paquetes.findIndex(p => p.id === entregas[index].paqueteId);
-    if (paqueteIndex !== -1) {
-      paquetes[paqueteIndex].estado = 'Entregado';
-      paquetes[paqueteIndex].fechaEntrega = entregas[index].fechaEntrega;
+    if (!ubicacionActual) {
+      return res.status(400).json({ success: false, error: 'Ubicación es requerida' });
     }
 
-    escribirJSON('entregas', entregas);
-    escribirJSON('paquetes', paquetes);
+    const entrega = await Entrega.findByPk(req.params.id);
+    if (!entrega) {
+      return res.status(404).json({ success: false, error: 'Entrega no encontrada' });
+    }
 
-    res.json({ success: true, message: 'Entrega completada', data: entregas[index] });
+    await entrega.update({ ubicacionActual: ubicacionActual.trim() });
+
+    res.json({
+      success: true,
+      message: 'Ubicación actualizada',
+      data: entrega
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al completar entrega' });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.eliminar = (req, res) => {
+exports.marcarLlegada = async (req, res) => {
   try {
-    let entregas = leerJSON('entregas');
-    const exists = entregas.find(e => e.id === parseInt(req.params.id));
+    const entrega = await Entrega.findByPk(req.params.id);
+    if (!entrega) {
+      return res.status(404).json({ success: false, error: 'Entrega no encontrada' });
+    }
+    if (entrega.estado !== 'en_transito') {
+      return res.status(409).json({ success: false, error: 'Solo se puede registrar la llegada de una visita en tránsito.' });
+    }
+    const ruta = await Ruta.findByPk(entrega.rutaId);
+    if (!ruta || ruta.estado !== 'en_curso') {
+      return res.status(409).json({ success: false, error: 'La ruta de esta entrega no está activa.' });
+    }
+    await entrega.update({
+      estado: 'en_puerta',
+      ubicacionActual: entrega.ubicacionActual || 'En el domicilio de entrega',
+    });
 
-    if (!exists) return res.status(404).json({ success: false, message: 'Entrega no encontrada' });
-
-    entregas = entregas.filter(e => e.id !== parseInt(req.params.id));
-    escribirJSON('entregas', entregas);
-
-    res.json({ success: true, message: 'Entrega eliminada' });
+    res.json({
+      success: true,
+      message: 'Llegada registrada. El cliente debe confirmar la recepción desde su perfil.',
+      data: entrega
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar entrega' });
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.eliminar = async (req, res) => {
+  try {
+    const entrega = await Entrega.findByPk(req.params.id);
+    if (!entrega) {
+      return res.status(404).json({ success: false, error: 'Entrega no encontrada' });
+    }
+
+    if (['entregado', 'rechazado'].includes(entrega.estado)) {
+      return res.status(409).json({
+        success: false,
+        error: 'No se puede borrar el historial de una entrega completada o una visita fallida.',
+      });
+    }
+    if (entrega.estado === 'en_transito' || entrega.estado === 'en_puerta') {
+      return res.status(409).json({
+        success: false,
+        error: 'No se puede eliminar una entrega activa; registra su resultado desde la ruta.',
+      });
+    }
+
+    await entrega.destroy();
+
+    res.json({ success: true, message: 'Entrega eliminada exitosamente' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };

@@ -19,9 +19,12 @@ async function cargarListaEntregas() {
   if (!contenedor) return;
 
   const acciones = [
-    (fila) => `<button class="btn btn-small btn-info" onclick="actualizarUbicacion(${fila.ID})">📍 Ubicación</button>`,
-    (fila) => `<button class="btn btn-small btn-success" onclick="completarEntregaBtn(${fila.ID})">✅ Completar</button>`,
-    (fila) => `<button class="btn btn-small btn-danger" onclick="eliminarEntregaConfirm(${fila.ID})">🗑️ Eliminar</button>`
+    (fila) => fila.estadoOriginal === 'en_transito'
+      ? `<button class="btn btn-small btn-info" onclick="actualizarUbicacion(${fila.ID})">📍 Ubicación</button>`
+      : '',
+    (fila) => fila.estadoOriginal === 'en_transito'
+      ? `<button class="btn btn-small btn-success" onclick="marcarLlegadaBtn(${fila.ID})">📦 Marcar en domicilio</button>`
+      : '',
   ];
 
   contenedor.innerHTML = `
@@ -30,12 +33,14 @@ async function cargarListaEntregas() {
         resultado.data.map(e => ({
           ID: e.id,
           'Seguimiento': e.numeroSeguimiento,
-          'Conductor': e.conductorNombre,
+          'Conductor': e.Conductor ? e.Conductor.nombre : '-',
           'Ubicación': e.ubicacionActual,
           'Estado': obtenerBadgeEstado(e.estado),
+          estadoOriginal: e.estado,
+          'Novedad': e.motivoNovedad || '',
           'Fecha': formatearFecha(e.fechaCreacion)
         })),
-        ['ID', 'Seguimiento', 'Conductor', 'Ubicación', 'Estado', 'Fecha'],
+        ['ID', 'Seguimiento', 'Conductor', 'Ubicación', 'Estado', 'Novedad', 'Fecha'],
         acciones
       )}
     </div>
@@ -45,120 +50,16 @@ async function cargarListaEntregas() {
 function configurarFormularioEntregas() {
   const contenedor = document.getElementById('formularioEntregas');
   if (!contenedor) return;
-
-  const form = document.createElement('form');
-  form.className = 'card';
-  form.innerHTML = `
-    <div class="card-header">
-      <h3 class="card-title">Nueva Entrega</h3>
-    </div>
-    <div class="card-body">
-      <div class="form-row">
-        <div class="form-group">
-          <label for="paqueteId">Paquete *</label>
-          <select id="paqueteId" name="paqueteId" required></select>
-        </div>
-        <div class="form-group">
-          <label for="rutaId">Ruta *</label>
-          <select id="rutaId" name="rutaId" required></select>
-        </div>
+  contenedor.innerHTML = `
+    <div class="dispatch-route-note">
+      <div>
+        <strong>Las entregas se crean al iniciar la ruta</strong>
+        <p>Prepara las asignaciones desde Despacho diario. Las visitas fallidas se conservan en este historial.</p>
       </div>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label for="conductorId">Conductor *</label>
-          <select id="conductorId" name="conductorId" required></select>
-        </div>
-        <div class="form-group">
-          <label for="ubicacionActual">Ubicación Actual</label>
-          <input type="text" id="ubicacionActual" name="ubicacionActual" placeholder="Calle 5, Villavicencio">
-        </div>
-      </div>
-
-      <div class="form-group form-row full">
-        <label for="observaciones">Observaciones</label>
-        <textarea id="observaciones" name="observaciones" placeholder="Notas de la entrega"></textarea>
-      </div>
-
-      <div class="btn-group">
-        <button type="submit" class="btn btn-primary">➕ Registrar Entrega</button>
-        <button type="reset" class="btn btn-secondary">Limpiar</button>
-      </div>
+      <button class="btn btn-primary" type="button" data-modulo="despacho">Ir a Despacho</button>
     </div>
   `;
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const datos = {
-      paqueteId: parseInt(document.getElementById('paqueteId').value),
-      rutaId: parseInt(document.getElementById('rutaId').value),
-      conductorId: parseInt(document.getElementById('conductorId').value),
-      ubicacionActual: document.getElementById('ubicacionActual').value,
-      observaciones: document.getElementById('observaciones').value
-    };
-
-    const resultado = await crearEntrega(datos);
-    
-    if (resultado.success) {
-      mostrarAlerta('✅ Entrega registrada correctamente', 'success');
-      form.reset();
-      cargarListaEntregas();
-      cargarSelectsEntregas();
-    } else {
-      mostrarAlerta('❌ Error: ' + resultado.message, 'danger');
-    }
-  });
-
-  contenedor.appendChild(form);
-  cargarSelectsEntregas();
 }
-
-async function cargarSelectsEntregas() {
-  const resultadoPaquetes = await obtenerPaquetes();
-  const resultadoRutas = await obtenerRutas();
-  const resultadoConductores = await obtenerConductores();
-  
-  if (resultadoPaquetes.success) {
-    const selectPaquete = document.getElementById('paqueteId');
-    if (selectPaquete) {
-      selectPaquete.innerHTML = '<option value="">-- Seleccionar paquete --</option>';
-      resultadoPaquetes.data.forEach(p => {
-        const option = document.createElement('option');
-        option.value = p.id;
-        option.textContent = `${p.numeroSeguimiento} - ${p.clienteNombre}`;
-        selectPaquete.appendChild(option);
-      });
-    }
-  }
-  
-  if (resultadoRutas.success) {
-    const selectRuta = document.getElementById('rutaId');
-    if (selectRuta) {
-      selectRuta.innerHTML = '<option value="">-- Seleccionar ruta --</option>';
-      resultadoRutas.data.forEach(r => {
-        const option = document.createElement('option');
-        option.value = r.id;
-        option.textContent = r.nombre;
-        selectRuta.appendChild(option);
-      });
-    }
-  }
-  
-  if (resultadoConductores.success) {
-    const selectConductor = document.getElementById('conductorId');
-    if (selectConductor) {
-      selectConductor.innerHTML = '<option value="">-- Seleccionar conductor --</option>';
-      resultadoConductores.data.forEach(c => {
-        const option = document.createElement('option');
-        option.value = c.id;
-        option.textContent = c.nombre;
-        selectConductor.appendChild(option);
-      });
-    }
-  }
-}
-
 async function actualizarUbicacion(id) {
   let html = `
     <div class="card">
@@ -182,62 +83,45 @@ async function actualizarUbicacion(id) {
 }
 
 async function guardarUbicacionEntrega(id) {
-  const ubicacion = document.getElementById('ubicacion').value;
+  const ubicacion = document.getElementById('ubicacion').value.trim();
   
   if (!ubicacion) {
     mostrarAlerta('Ingrese la ubicación', 'warning');
     return;
   }
 
-  const resultado = await actualizarUbicacionEntrega(id, ubicacion);
-  
-  if (resultado.success) {
+  try {
+    const response = await fetch(`/api/entregas/${id}/ubicacion`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ubicacionActual: ubicacion }),
+    });
+    const resultado = await response.json();
+
+    if (!response.ok || !resultado.success) {
+      mostrarAlerta('❌ Error: ' + (resultado.error || resultado.message || 'No se pudo actualizar la ubicación.'), 'danger');
+      return;
+    }
+
     mostrarAlerta('✅ Ubicación actualizada correctamente', 'success');
     cargarListaEntregas();
     configurarFormularioEntregas();
-  } else {
-    mostrarAlerta('❌ Error: ' + resultado.message, 'danger');
+  } catch (error) {
+    console.error('Error actualizando ubicación de entrega:', error);
+    mostrarAlerta('❌ No se pudo conectar para actualizar la ubicación.', 'danger');
   }
 }
 
-async function completarEntregaBtn(id) {
-  let html = `
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Completar Entrega #${id}</h3>
-      </div>
-      <div class="card-body">
-        <div class="form-group">
-          <label for="firma">Firma Recibido (Nombre)</label>
-          <input type="text" id="firma" placeholder="Nombre de quien recibió">
-        </div>
-        <div class="form-group">
-          <label for="observacionesEntrega">Observaciones</label>
-          <textarea id="observacionesEntrega" placeholder="Notas de la entrega"></textarea>
-        </div>
-        <div class="btn-group">
-          <button class="btn btn-success" onclick="guardarCompletarEntrega(${id})">✅ Completar</button>
-          <button class="btn btn-secondary" onclick="cargarListaEntregas()">❌ Cancelar</button>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  document.getElementById('formularioEntregas').innerHTML = html;
-}
-
-async function guardarCompletarEntrega(id) {
-  const firma = document.getElementById('firma').value || 'Sin firma digital';
-  const observaciones = document.getElementById('observacionesEntrega').value;
-
-  const resultado = await completarEntrega(id, firma, observaciones);
-  
+async function marcarLlegadaBtn(id) {
+  if (!confirm('Al marcar la llegada, el cliente podrá confirmar la recepción desde su perfil. ¿Continuar?')) {
+    return;
+  }
+  const resultado = await marcarLlegadaEntrega(id);
   if (resultado.success) {
-    mostrarAlerta('✅ Entrega completada correctamente', 'success');
+    mostrarAlerta(resultado.message, 'success');
     cargarListaEntregas();
-    configurarFormularioEntregas();
   } else {
-    mostrarAlerta('❌ Error: ' + resultado.message, 'danger');
+    mostrarAlerta('Error: ' + (resultado.error || resultado.message), 'danger');
   }
 }
 

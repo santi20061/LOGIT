@@ -1,152 +1,252 @@
-const { leerJSON, escribirJSON, obtenerSiguienteId } = require('../utils/fileHandler');
+const { Paquete, Cliente, Ruta } = require('../models');
+const { Op, Transaction } = require('sequelize');
+const { sequelize } = require('../models');
+const { obtenerMunicipioMeta } = require('../utils/municipiosMeta');
 
-exports.obtenerTodos = (req, res) => {
+// Generar número de seguimiento único
+const generarNumeroSeguimiento = async () => {
+  const fecha = new Date();
+  const aleatorio = Math.floor(Math.random() * 10000);
+  return `PKG-${fecha.getFullYear()}${String(fecha.getMonth() + 1).padStart(2, '0')}${aleatorio}`;
+};
+
+exports.obtenerTodos = async (req, res) => {
   try {
-    const paquetes = leerJSON('paquetes');
-    const clientes = leerJSON('clientes');
-
-    const paquetesConCliente = paquetes.map(paquete => {
-      const cliente = clientes.find(c => c.id === paquete.clienteId);
-      return {
-        ...paquete,
-        clienteNombre: cliente?.nombre || 'N/A'
-      };
+    const paquetes = await Paquete.findAll({
+      include: [
+        { model: Cliente, attributes: ['nombre', 'email', 'telefono'] },
+        { model: Ruta, attributes: ['nombre', 'estado'] }
+      ],
+      order: [['id', 'DESC']]
     });
 
     res.json({
       success: true,
-      data: paquetesConCliente,
-      total: paquetes.length
+      total: paquetes.length,
+      data: paquetes
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener paquetes' });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.obtenerPorId = (req, res) => {
+exports.obtenerPorId = async (req, res) => {
   try {
-    const { id } = req.params;
-    const paquetes = leerJSON('paquetes');
-    const paquete = paquetes.find(p => p.id === parseInt(id));
+    if (isNaN(req.params.id)) {
+      return res.status(400).json({ success: false, error: 'ID inválido' });
+    }
+
+    const paquete = await Paquete.findByPk(req.params.id, {
+      include: [
+        { model: Cliente },
+        { model: Ruta }
+      ]
+    });
 
     if (!paquete) {
-      return res.status(404).json({ success: false, message: 'Paquete no encontrado' });
+      return res.status(404).json({ success: false, error: 'Paquete no encontrado' });
     }
 
     res.json({ success: true, data: paquete });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener paquete' });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.crear = (req, res) => {
+exports.crear = async (req, res) => {
   try {
-    const { clienteId, origen, destino, peso, contenido, valor, observaciones } = req.body;
+    const { clienteId, peso, origen, destino, valor, contenido } = req.body;
 
-    if (!clienteId || !origen || !destino || !peso || !valor) {
-      return res.status(400).json({ success: false, message: 'Faltan campos requeridos' });
+    if (!clienteId || !peso || !origen || !destino || valor === undefined || valor === null) {
+      return res.status(400).json({ success: false, error: 'Campos obligatorios faltantes' });
     }
 
-    const paquetes = leerJSON('paquetes');
-    const numeroSeguimiento = `PKG-${obtenerSiguienteId(paquetes)}-2026`;
+    const origenMeta = obtenerMunicipioMeta(origen);
+    const destinoMeta = obtenerMunicipioMeta(destino);
+    if (!origenMeta || !destinoMeta) {
+      return res.status(400).json({
+        success: false,
+        error: 'El origen y el destino deben ser municipios del departamento del Meta.',
+      });
+    }
 
-    const nuevoPaquete = {
-      id: obtenerSiguienteId(paquetes),
+    if (peso <= 0) {
+      return res.status(400).json({ success: false, error: 'Peso debe ser mayor a 0' });
+    }
+
+    if (valor <= 0) {
+      return res.status(400).json({ success: false, error: 'Valor debe ser mayor a 0' });
+    }
+
+    const cliente = await Cliente.findByPk(clienteId);
+    if (!cliente) {
+      return res.status(404).json({ success: false, error: 'Cliente no encontrado' });
+    }
+
+    const numeroSeguimiento = await generarNumeroSeguimiento();
+
+    const paquete = await Paquete.create({
       numeroSeguimiento,
-      clienteId: parseInt(clienteId),
-      origen,
-      destino,
-      peso: parseFloat(peso),
-      contenido: contenido || 'No especificado',
-      valor: parseInt(valor),
-      estado: 'Registrado',
-      fechaRegistro: new Date().toISOString().split('T')[0],
-      fechaEntrega: null,
-      rutaId: null,
-      observaciones: observaciones || ''
-    };
+      clienteId,
+      peso,
+      origen: origenMeta,
+      destino: destinoMeta,
+      valor,
+      contenido: contenido ? contenido.trim() : null,
+      estado: 'pendiente'
+    });
 
-    paquetes.push(nuevoPaquete);
-    escribirJSON('paquetes', paquetes);
-
-    res.status(201).json({ success: true, message: 'Paquete creado', data: nuevoPaquete });
+    res.status(201).json({
+      success: true,
+      message: 'Paquete creado exitosamente',
+      data: paquete
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear paquete' });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.actualizarEstado = (req, res) => {
+exports.actualizar = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { estado } = req.body;
-
-    if (!estado) {
-      return res.status(400).json({ success: false, message: 'El estado es requerido' });
+    if (isNaN(req.params.id)) {
+      return res.status(400).json({ success: false, error: 'ID inválido' });
     }
 
-    const paquetes = leerJSON('paquetes');
-    const index = paquetes.findIndex(p => p.id === parseInt(id));
+    const paquete = await sequelize.transaction({
+      type: Transaction.TYPES.IMMEDIATE,
+    }, async transaction => {
+      const registro = await Paquete.findByPk(req.params.id, { transaction });
+      if (!registro) {
+        const error = new Error('Paquete no encontrado');
+        error.status = 404;
+        throw error;
+      }
+      if (registro.estado !== 'pendiente') {
+        const error = new Error('Solo se pueden editar paquetes pendientes.');
+        error.status = 409;
+        throw error;
+      }
 
-    if (index === -1) {
-      return res.status(404).json({ success: false, message: 'Paquete no encontrado' });
-    }
+      const cambios = {};
+      for (const campo of ['peso', 'valor']) {
+        if (req.body[campo] !== undefined) {
+          const valor = Number(req.body[campo]);
+          if (!Number.isFinite(valor) || valor <= 0) {
+            const error = new Error(`${campo === 'peso' ? 'Peso' : 'Valor'} debe ser mayor a 0.`);
+            error.status = 400;
+            throw error;
+          }
+          cambios[campo] = valor;
+        }
+      }
+      if (req.body.contenido !== undefined) {
+        if (typeof req.body.contenido !== 'string' || req.body.contenido.length > 255) {
+          const error = new Error('El contenido debe tener máximo 255 caracteres.');
+          error.status = 400;
+          throw error;
+        }
+        cambios.contenido = req.body.contenido.trim() || null;
+      }
+      if (Object.keys(cambios).length === 0) {
+        const error = new Error('Indica al menos un dato para actualizar.');
+        error.status = 400;
+        throw error;
+      }
 
-    paquetes[index].estado = estado;
-    if (estado === 'Entregado') {
-      paquetes[index].fechaEntrega = new Date().toISOString().split('T')[0];
-    }
+      await registro.update(cambios, { transaction });
+      return registro;
+    });
 
-    escribirJSON('paquetes', paquetes);
-
-    res.json({ success: true, message: 'Estado actualizado', data: paquetes[index] });
+    res.json({
+      success: true,
+      message: 'Paquete actualizado exitosamente',
+      data: paquete
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar paquete' });
+    if (error.status) {
+      return res.status(error.status).json({ success: false, error: error.message });
+    }
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.asignarARuta = (req, res) => {
+exports.coordinarDevolucion = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { rutaId } = req.body;
-
-    if (!rutaId) {
-      return res.status(400).json({ success: false, message: 'rutaId es requerido' });
-    }
-
-    const paquetes = leerJSON('paquetes');
-    const index = paquetes.findIndex(p => p.id === parseInt(id));
-
-    if (index === -1) {
-      return res.status(404).json({ success: false, message: 'Paquete no encontrado' });
-    }
-
-    paquetes[index].rutaId = parseInt(rutaId);
-    paquetes[index].estado = 'Asignado';
-
-    escribirJSON('paquetes', paquetes);
-
-    res.json({ success: true, message: 'Paquete asignado a ruta', data: paquetes[index] });
+    const paquete = await sequelize.transaction({
+      type: Transaction.TYPES.IMMEDIATE,
+    }, async transaction => {
+      const registro = await Paquete.findByPk(req.params.id, { transaction });
+      if (!registro) {
+        const error = new Error('Paquete no encontrado.');
+        error.status = 404;
+        throw error;
+      }
+      if (registro.estado !== 'incidencia') {
+        const error = new Error('Solo se puede coordinar la devolución de un paquete con incidencia reportada.');
+        error.status = 409;
+        throw error;
+      }
+      await registro.update({ estado: 'devuelto', fechaDevolucion: new Date() }, { transaction });
+      return registro;
+    });
+    return res.json({
+      success: true,
+      message: 'Devolución coordinada y registrada.',
+      data: paquete,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al asignar paquete' });
+    if (error.status) {
+      return res.status(error.status).json({ success: false, error: error.message });
+    }
+    return next(error);
   }
 };
 
-exports.eliminar = (req, res) => {
+exports.eliminar = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    let paquetes = leerJSON('paquetes');
-    const paqueteExiste = paquetes.find(p => p.id === parseInt(id));
-
-    if (!paqueteExiste) {
-      return res.status(404).json({ success: false, message: 'Paquete no encontrado' });
+    if (isNaN(req.params.id)) {
+      return res.status(400).json({ success: false, error: 'ID inválido' });
     }
 
-    paquetes = paquetes.filter(p => p.id !== parseInt(id));
-    escribirJSON('paquetes', paquetes);
+    const paquete = await Paquete.findByPk(req.params.id);
+    if (!paquete) {
+      return res.status(404).json({ success: false, error: 'Paquete no encontrado' });
+    }
 
-    res.json({ success: true, message: 'Paquete eliminado' });
+    if (paquete.estado !== 'pendiente') {
+      return res.status(400).json({
+        success: false,
+        error: 'Solo se pueden eliminar paquetes en estado "pendiente"'
+      });
+    }
+
+    await paquete.destroy();
+
+    res.json({ success: true, message: 'Paquete eliminado exitosamente' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar paquete' });
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.obtenerPorEstado = async (req, res) => {
+  try {
+    const { estado } = req.params;
+    const estadosValidos = ['pendiente', 'en_ruta', 'entregado', 'incidencia', 'devuelto'];
+
+    if (!estadosValidos.includes(estado)) {
+      return res.status(400).json({
+        success: false,
+        error: `Estado debe ser uno de: ${estadosValidos.join(', ')}`
+      });
+    }
+
+    const paquetes = await Paquete.findAll({
+      where: { estado },
+      include: [{ model: Cliente, attributes: ['nombre'] }]
+    });
+
+    res.json({ success: true, total: paquetes.length, data: paquetes });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };

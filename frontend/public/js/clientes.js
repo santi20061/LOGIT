@@ -7,6 +7,62 @@ async function inicializarClientes() {
   configurarFormularioClientes();
 }
 
+async function gestionarAccesoCliente(id, restablecer) {
+  const confirmacion = restablecer
+    ? 'Se cambiará la contraseña temporal y se cerrarán las sesiones activas del cliente. ¿Continuar?'
+    : 'Se generará una contraseña temporal de un solo uso para este cliente. ¿Continuar?';
+  if (!confirm(confirmacion)) return;
+
+  const resultado = await generarAccesoCliente(id);
+  if (!resultado.success) {
+    mostrarAlerta(resultado.error || 'No se pudo generar el acceso.', 'danger');
+    return;
+  }
+
+  mostrarCredencialTemporal(resultado.data, 'cliente');
+  cargarListaClientes();
+}
+
+function mostrarCredencialTemporal(credencial, tipo = 'cliente') {
+  const modal = document.getElementById('modal');
+  const extra = document.getElementById('modal-extra');
+  document.getElementById('modal-titulo').textContent = `Acceso del ${tipo}`;
+  document.getElementById('modal-mensaje').textContent =
+    `Entrega estas credenciales al ${tipo} de forma privada. La contraseña temporal se mostrará solo ahora y deberá cambiarse en el primer ingreso.`;
+  extra.replaceChildren();
+
+  const usuarioLabel = document.createElement('p');
+  usuarioLabel.className = 'credential-label';
+  usuarioLabel.textContent = `Usuario: ${credencial.email}`;
+  const passwordLabel = document.createElement('label');
+  passwordLabel.className = 'credential-label';
+  passwordLabel.textContent = 'Contraseña temporal';
+  const password = document.createElement('input');
+  password.className = 'credential-password';
+  password.type = 'text';
+  password.readOnly = true;
+  password.value = credencial.passwordTemporal;
+  password.autocomplete = 'off';
+  const copiar = document.createElement('button');
+  copiar.className = 'btn btn-secondary';
+  copiar.type = 'button';
+  copiar.textContent = 'Copiar contraseña';
+  copiar.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(credencial.passwordTemporal);
+      copiar.textContent = 'Copiada';
+    } catch (error) {
+      console.error('No fue posible copiar la contraseña:', error);
+      password.select();
+      copiar.textContent = 'Selecciona y copia';
+    }
+  });
+
+  extra.append(usuarioLabel, passwordLabel, password, copiar);
+  extra.hidden = false;
+  abrirModal();
+}
+
 async function cargarListaClientes() {
   const resultado = await obtenerClientes();
   
@@ -20,6 +76,7 @@ async function cargarListaClientes() {
 
   const acciones = [
     (fila) => `<button class="btn btn-small btn-warning" onclick="editarCliente(${fila.ID})">✏️ Editar</button>`,
+    (fila) => `<button class="btn btn-small btn-secondary" onclick="gestionarAccesoCliente(${fila.ID}, ${fila.tieneAcceso})">${fila.tieneAcceso ? 'Restablecer acceso' : 'Crear acceso'}</button>`,
     (fila) => `<button class="btn btn-small btn-danger" onclick="eliminarClienteConfirm(${fila.ID})">🗑️ Eliminar</button>`
   ];
 
@@ -32,9 +89,10 @@ async function cargarListaClientes() {
           'Teléfono': c.telefono,
           'Email': c.email,
           'Ciudad': c.ciudad,
+          'Acceso': c.tieneAcceso ? 'Cuenta activa' : 'Sin acceso',
           'Fecha': formatearFecha(c.fechaRegistro)
         })),
-        ['ID', 'Nombre', 'Teléfono', 'Email', 'Ciudad', 'Fecha'],
+        ['ID', 'Nombre', 'Teléfono', 'Email', 'Ciudad', 'Acceso', 'Fecha'],
         acciones
       )}
     </div>

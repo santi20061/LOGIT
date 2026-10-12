@@ -20,6 +20,7 @@ async function cargarListaConductores() {
 
   const acciones = [
     (fila) => `<button class="btn btn-small btn-info" onclick="asignarVehiculoA(${fila.ID})">🚚 Asignar</button>`,
+    (fila) => `<button class="btn btn-small btn-secondary" onclick="gestionarAccesoConductor(${fila.ID}, ${fila.tieneAcceso})">${fila.tieneAcceso ? 'Restablecer acceso' : 'Crear acceso'}</button>`,
     (fila) => `<button class="btn btn-small btn-warning" onclick="cambiarEstadoConductor(${fila.ID})">📊 Estado</button>`,
     (fila) => `<button class="btn btn-small btn-danger" onclick="eliminarConductorConfirm(${fila.ID})">🗑️ Eliminar</button>`
   ];
@@ -32,15 +33,32 @@ async function cargarListaConductores() {
           'Nombre': c.nombre,
           'Cédula': c.cedula,
           'Teléfono': c.telefono,
+          'Email': c.email,
           'Licencia': c.licencia,
-          'Vehículo': c.vehiculoPlaca,
-          'Estado': obtenerBadgeEstado(c.estado)
+          'Vehículo': c.Vehiculo ? c.Vehiculo.placa : '-',
+          tieneAcceso: c.tieneAcceso,
+          'Estado': obtenerBadgeEstado(c.disponibilidad || c.estado)
         })),
-        ['ID', 'Nombre', 'Cédula', 'Teléfono', 'Licencia', 'Vehículo', 'Estado'],
+        ['ID', 'Nombre', 'Cédula', 'Teléfono', 'Email', 'Licencia', 'Vehículo', 'Estado'],
         acciones
       )}
     </div>
   `;
+}
+
+async function gestionarAccesoConductor(id, restablecer) {
+  const mensaje = restablecer
+    ? 'Se generará una nueva contraseña temporal y se cerrarán las sesiones activas del conductor. ¿Continuar?'
+    : 'Se generará una contraseña temporal de un solo uso para este conductor. ¿Continuar?';
+  if (!confirm(mensaje)) return;
+
+  const resultado = await generarAccesoConductor(id);
+  if (!resultado.success) {
+    mostrarAlerta(resultado.error || 'No se pudo generar el acceso del conductor.', 'danger');
+    return;
+  }
+  mostrarCredencialTemporal(resultado.data, 'conductor');
+  cargarListaConductores();
 }
 
 function configurarFormularioConductores() {
@@ -72,7 +90,7 @@ function configurarFormularioConductores() {
         </div>
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" name="email" placeholder="conductor@email.com">
+          <input type="email" id="email" name="email" required placeholder="conductor@email.com">
         </div>
       </div>
 
@@ -131,10 +149,18 @@ function configurarFormularioConductores() {
 }
 
 async function asignarVehiculoA(id) {
-  const resultadoVehiculos = await obtenerVehiculos();
-  
-  if (!resultadoVehiculos.success) {
-    mostrarAlerta('Error al cargar vehículos', 'danger');
+  const [resultadoVehiculos, resultadoConductores] = await Promise.all([
+    obtenerVehiculos(),
+    obtenerConductores(),
+  ]);
+
+  if (!resultadoVehiculos.success || !resultadoConductores.success) {
+    mostrarAlerta('No se pudieron cargar los vehículos o conductores.', 'danger');
+    return;
+  }
+  const conductor = resultadoConductores.data.find(item => item.id === id);
+  if (!conductor) {
+    mostrarAlerta('No se encontró el conductor.', 'danger');
     return;
   }
 
@@ -150,9 +176,19 @@ async function asignarVehiculoA(id) {
             <option value="">-- Seleccionar --</option>
   `;
   
-  resultadoVehiculos.data.forEach(v => {
-    html += `<option value="${v.id}">${v.placa} - ${v.marca} ${v.modelo}</option>`;
+  let opcionesDisponibles = 0;
+  resultadoVehiculos.data
+    .filter(vehiculo => vehiculo.disponibilidad === 'disponible'
+      || (vehiculo.id === conductor.vehiculoId
+        && ['ocupado', 'asignado'].includes(vehiculo.disponibilidad)))
+    .forEach(vehiculo => {
+      opcionesDisponibles += 1;
+      const seleccionado = vehiculo.id === conductor.vehiculoId ? ' selected' : '';
+      html += `<option value="${vehiculo.id}"${seleccionado}>${vehiculo.placa} - ${vehiculo.marca} ${vehiculo.modelo}${seleccionado ? ' (asignado actualmente)' : ''}</option>`;
   });
+  if (!opcionesDisponibles) {
+    html += '<option value="" disabled>No hay vehículos disponibles</option>';
+  }
   
   html += `
           </select>
@@ -179,16 +215,20 @@ async function guardarVehiculoConductor(id) {
   const resultado = await asignarVehiculo(id, vehiculoId);
   
   if (resultado.success) {
-    mostrarAlerta('✅ Vehículo asignado correctamente', 'success');
+    mostrarAlerta(resultado.message || '✅ Vehículo asignado correctamente', 'success');
     cargarListaConductores();
     configurarFormularioConductores();
   } else {
-    mostrarAlerta('❌ Error: ' + resultado.message, 'danger');
+    mostrarAlerta('❌ Error: ' + (resultado.error || resultado.message || 'No se pudo asignar el vehículo.'), 'danger');
   }
 }
 
 async function cambiarEstadoConductor(id) {
-  const estados = ['Disponible', 'En ruta', 'Descansando'];
+  const estados = [
+    ['activo', 'Activo'],
+    ['inactivo', 'Inactivo'],
+    ['vacaciones', 'Vacaciones'],
+  ];
   
   let html = `
     <div class="card">
@@ -202,8 +242,8 @@ async function cambiarEstadoConductor(id) {
             <option value="">-- Seleccionar --</option>
   `;
   
-  estados.forEach(estado => {
-    html += `<option value="${estado}">${estado}</option>`;
+  estados.forEach(([valor, etiqueta]) => {
+    html += `<option value="${valor}">${etiqueta}</option>`;
   });
   
   html += `
@@ -235,7 +275,7 @@ async function guardarEstadoConductor(id) {
     cargarListaConductores();
     configurarFormularioConductores();
   } else {
-    mostrarAlerta('❌ Error: ' + resultado.message, 'danger');
+    mostrarAlerta('❌ Error: ' + (resultado.error || resultado.message), 'danger');
   }
 }
 

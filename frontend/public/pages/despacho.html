@@ -1,0 +1,45 @@
+<section class="dispatch-page">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">Operación diaria · Meta</span>
+      <h2>Despacho diario</h2>
+      <p>Reúne paquetes pendientes por municipio y asígnalos a un conductor con su vehículo asignado.</p>
+    </div>
+  </div>
+
+  <div class="dispatch-layout">
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Paquetes por despachar</h3>
+          <p class="card-subtitle">Una ruta solo puede incluir paquetes del mismo municipio.</p>
+        </div>
+        <button class="btn btn-secondary" type="button" onclick="cargarDespacho()">Actualizar</button>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label for="despacho-destino">Municipio de destino</label>
+          <select id="despacho-destino" required></select>
+        </div>
+        <div id="despacho-paquetes" class="dispatch-packages" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <form class="card dispatch-assignment" id="form-despacho">
+      <div class="card-header"><h3 class="card-title">Asignar recorrido</h3></div>
+      <div class="card-body">
+        <p class="dispatch-selection" id="despacho-seleccion">Selecciona paquetes para preparar la ruta.</p>
+        <div class="form-group">
+          <label for="despacho-conductor">Conductor con vehículo disponible</label>
+          <select id="despacho-conductor" required></select>
+        </div>
+        <div class="form-group">
+          <label for="despacho-vehiculo">Vehículo asignado al conductor</label>
+          <select id="despacho-vehiculo" required></select>
+        </div>
+        <button class="btn btn-primary dispatch-submit" type="submit">Crear ruta planeada</button>
+        <p class="dispatch-hint">Luego, inicia la ruta desde <button type="button" class="link-button" data-modulo="rutas">Rutas</button>. Las entregas se activarán al iniciarla.</p>
+      </div>
+    </form>
+  </div>
+</section>

@@ -1,117 +1,76 @@
-<div class="dashboard">
-  <h2>📊 Dashboard - LOGIT</h2>
-  
-  <div class="grid grid-3">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">👥 Total Clientes</h3>
-      </div>
-      <div class="card-body">
-        <div id="totalClientes" style="font-size: 32px; font-weight: bold; color: #2563eb;">-</div>
-        <small>Clientes registrados</small>
-      </div>
+<section class="dashboard">
+  <div class="dashboard-hero">
+    <div class="dashboard-hero-copy">
+      <span class="eyebrow">Centro de operaciones · Meta</span>
+      <h2>Tu operación,<br><span>en movimiento.</span></h2>
+      <p>Paquetes, rutas y entregas en un solo lugar. Revisa el pulso de LOGIT y organiza el siguiente despacho.</p>
+      <button class="btn btn-primary dashboard-cta" type="button" data-modulo="despacho">
+        Preparar despacho <span aria-hidden="true">→</span>
+      </button>
     </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">📦 Total Paquetes</h3>
-      </div>
-      <div class="card-body">
-        <div id="totalPaquetes" style="font-size: 32px; font-weight: bold; color: #10b981;">-</div>
-        <small>Paquetes en sistema</small>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">🚚 Total Vehículos</h3>
-      </div>
-      <div class="card-body">
-        <div id="totalVehiculos" style="font-size: 32px; font-weight: bold; color: #f59e0b;">-</div>
-        <small>Vehículos disponibles</small>
-      </div>
+    <div class="dashboard-hero-art" aria-hidden="true">
+      <img src="images/logit-delivery.svg" alt="">
+      <span class="hero-float hero-float-top">Operación local <span>●</span></span>
+      <span class="hero-float hero-float-bottom"><span class="hero-float-pulse"></span> Diseñado para el Meta</span>
     </div>
   </div>
 
-  <div class="grid grid-3" style="margin-top: 20px;">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">👨‍✈️ Total Conductores</h3>
-      </div>
-      <div class="card-body">
-        <div id="totalConductores" style="font-size: 32px; font-weight: bold; color: #06b6d4;">-</div>
-        <small>Conductores activos</small>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">🗺️ Total Rutas</h3>
-      </div>
-      <div class="card-body">
-        <div id="totalRutas" style="font-size: 32px; font-weight: bold; color: #8b5cf6;">-</div>
-        <small>Rutas creadas</small>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">✅ Total Entregas</h3>
-      </div>
-      <div class="card-body">
-        <div id="totalEntregas" style="font-size: 32px; font-weight: bold; color: #ec4899;">-</div>
-        <small>Entregas registradas</small>
-      </div>
-    </div>
+  <div class="metrics-grid">
+    <article class="metric-card">
+      <span class="metric-icon metric-icon-clients" aria-hidden="true">01</span>
+      <span class="metric-label">Clientes</span>
+      <strong class="metric-value" id="totalClientes">—</strong>
+      <span class="metric-footnote">Registrados en el sistema</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-icon metric-icon-packages" aria-hidden="true">02</span>
+      <span class="metric-label">Paquetes</span>
+      <strong class="metric-value" id="totalPaquetes">—</strong>
+      <span class="metric-footnote">En gestión logística</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-icon metric-icon-vehicles" aria-hidden="true">03</span>
+      <span class="metric-label">Vehículos</span>
+      <strong class="metric-value" id="totalVehiculos">—</strong>
+      <span class="metric-footnote">En la flota</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-icon metric-icon-drivers" aria-hidden="true">04</span>
+      <span class="metric-label">Conductores</span>
+      <strong class="metric-value" id="totalConductores">—</strong>
+      <span class="metric-footnote">Registrados</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-icon metric-icon-routes" aria-hidden="true">05</span>
+      <span class="metric-label">Rutas</span>
+      <strong class="metric-value" id="totalRutas">—</strong>
+      <span class="metric-footnote">Planificadas y activas</span>
+    </article>
+    <article class="metric-card">
+      <span class="metric-icon metric-icon-deliveries" aria-hidden="true">06</span>
+      <span class="metric-label">Entregas</span>
+      <strong class="metric-value" id="totalEntregas">—</strong>
+      <span class="metric-footnote">Registradas</span>
+    </article>
   </div>
 
-  <div class="card" style="margin-top: 30px;">
-    <div class="card-header">
-      <h3 class="card-title">📈 Estado General del Sistema</h3>
-    </div>
-    <div class="card-body">
-      <p><strong>Estado:</strong> <span class="badge badge-success">Operativo</span></p>
-      <p><strong>Última actualización:</strong> <span id="ultimaActualizacion">-</span></p>
-      <p><strong>Servidor:</strong> <span class="badge badge-info">Conectado</span></p>
-      <p><strong>Base de Datos:</strong> <span class="badge badge-success">Activa</span></p>
-    </div>
+  <div class="dashboard-bottom">
+    <section class="panel">
+      <h3>Estado del sistema</h3>
+      <div class="system-status">
+        <span class="status-dot" id="estadoIndicador" aria-hidden="true"></span>
+        <span id="estadoSistema" role="status">Verificando conexión...</span>
+      </div>
+      <p class="last-updated">Última consulta: <span id="ultimaActualizacion">—</span></p>
+    </section>
+
+    <section class="panel">
+      <h3>Accesos rápidos</h3>
+      <div class="quick-links">
+        <button class="quick-link" type="button" data-modulo="paquetes">Gestionar paquetes <span aria-hidden="true">→</span></button>
+        <button class="quick-link" type="button" data-modulo="rutas">Consultar rutas <span aria-hidden="true">→</span></button>
+        <button class="quick-link" type="button" data-modulo="entregas">Revisar entregas <span aria-hidden="true">→</span></button>
+      </div>
+    </section>
   </div>
-
-  <div class="card" style="margin-top: 20px;">
-    <div class="card-header">
-      <h3 class="card-title">ℹ️ Información del Sistema</h3>
-    </div>
-    <div class="card-body">
-      <p>Bienvenido a <strong>LOGIT</strong> - Sistema de Gestión de Paquetes y Rutas</p>
-      <p>Utiliza el menú lateral para acceder a los diferentes módulos del sistema.</p>
-      <p>Para más información, consulta la documentación del proyecto.</p>
-    </div>
-  </div>
-</div>
-
-<script>
-async function inicializarDashboard() {
-  try {
-    const clientes = await obtenerClientes();
-    const paquetes = await obtenerPaquetes();
-    const vehiculos = await obtenerVehiculos();
-    const conductores = await obtenerConductores();
-    const rutas = await obtenerRutas();
-    const entregas = await obtenerEntregas();
-
-    document.getElementById('totalClientes').textContent = clientes.data ? clientes.data.length : 0;
-    document.getElementById('totalPaquetes').textContent = paquetes.data ? paquetes.data.length : 0;
-    document.getElementById('totalVehiculos').textContent = vehiculos.data ? vehiculos.data.length : 0;
-    document.getElementById('totalConductores').textContent = conductores.data ? conductores.data.length : 0;
-    document.getElementById('totalRutas').textContent = rutas.data ? rutas.data.length : 0;
-    document.getElementById('totalEntregas').textContent = entregas.data ? entregas.data.length : 0;
-
-    const ahora = new Date();
-    document.getElementById('ultimaActualizacion').textContent = ahora.toLocaleString('es-CO');
-  } catch (error) {
-    console.error('Error cargando dashboard:', error);
-  }
-}
-
-inicializarDashboard();
-</script>
+</section>

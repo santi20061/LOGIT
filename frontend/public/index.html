@@ -7,50 +7,118 @@
   <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
-  <!-- HEADER -->
-  <header>
-    <div class="logo">
-      <h1>📦 LOGIT</h1>
+  <section class="login-screen" id="login-screen" hidden>
+    <div class="login-aside">
+      <div class="login-brand">
+        <span class="brand-mark" aria-hidden="true">L</span>
+        <span class="brand-name">LOGIT</span>
+      </div>
+      <div class="login-message">
+        <span class="eyebrow">Centro de operaciones</span>
+        <h1>Tu operación logística, bajo control.</h1>
+        <p>Ingresa para gestionar paquetes, rutas, flota y entregas desde un solo lugar.</p>
+      </div>
+      <span class="login-footer">Gestión logística simplificada</span>
     </div>
-    <div id="fecha-hora"></div>
-  </header>
 
-  <!-- CONTENEDOR PRINCIPAL -->
-  <div class="container-principal">
-    <!-- SIDEBAR -->
-    <aside>
-      <button class="menu-btn active" data-modulo="dashboard">📊 Dashboard</button>
-      <button class="menu-btn" data-modulo="clientes">👥 Clientes</button>
-      <button class="menu-btn" data-modulo="paquetes">📦 Paquetes</button>
-      <button class="menu-btn" data-modulo="vehiculos">🚚 Vehículos</button>
-      <button class="menu-btn" data-modulo="conductores">👨‍✈️ Conductores</button>
-      <button class="menu-btn" data-modulo="rutas">🗺️ Rutas</button>
-      <button class="menu-btn" data-modulo="entregas">✅ Entregas</button>
-      <button class="menu-btn" data-modulo="reportes">📈 Reportes</button>
+    <div class="login-main">
+      <form class="login-card" id="login-form">
+        <span class="eyebrow">Bienvenido</span>
+        <h2>Iniciar sesión</h2>
+        <p class="login-description">Ingresa con el correo y la contraseña de tu cuenta.</p>
+
+        <div class="form-group">
+          <label for="login-email">Correo electrónico</label>
+          <input id="login-email" name="email" type="email" autocomplete="username" required autofocus placeholder="tu@empresa.com">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Contraseña</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Ingresa tu contraseña">
+        </div>
+        <p class="login-error" id="login-error" role="alert" hidden></p>
+        <button class="btn btn-primary login-submit" id="login-submit" type="submit">Entrar al sistema</button>
+        <p class="login-security">Acceso protegido · Sesión privada</p>
+      </form>
+
+      <form class="login-card" id="change-password-form" hidden>
+        <span class="eyebrow">Primer acceso</span>
+        <h2>Crea tu contraseña</h2>
+        <p class="login-description">Por seguridad, cambia la contraseña temporal para continuar.</p>
+        <div class="form-group">
+          <label for="new-password">Nueva contraseña</label>
+          <input id="new-password" name="password" type="password" autocomplete="new-password" minlength="12" required placeholder="Mínimo 12 caracteres">
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirmar contraseña</label>
+          <input id="confirm-password" name="confirmarPassword" type="password" autocomplete="new-password" minlength="12" required placeholder="Repite la contraseña">
+        </div>
+        <p class="login-error" id="change-password-error" role="alert" hidden></p>
+        <button class="btn btn-primary login-submit" id="change-password-submit" type="submit">Guardar contraseña</button>
+        <p class="login-security">Usa al menos 12 caracteres.</p>
+      </form>
+    </div>
+  </section>
+
+  <div class="app-shell" id="app-shell" hidden>
+    <aside class="sidebar" aria-label="Navegación principal">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">L</span>
+        <div>
+          <p class="brand-name">LOGIT</p>
+          <span class="brand-caption">Operaciones logísticas</span>
+        </div>
+      </div>
+
+      <p class="nav-label">Menú principal</p>
+      <nav>
+        <button class="menu-btn active" type="button" data-modulo="dashboard" aria-current="page"><span class="nav-icon" aria-hidden="true">⌂</span>Panel general</button>
+        <button class="menu-btn" type="button" data-modulo="clientes"><span class="nav-icon" aria-hidden="true">◎</span>Clientes</button>
+        <button class="menu-btn" type="button" data-modulo="paquetes"><span class="nav-icon" aria-hidden="true">▣</span>Paquetes</button>
+        <button class="menu-btn" type="button" data-modulo="vehiculos"><span class="nav-icon" aria-hidden="true">▰</span>Vehículos</button>
+        <button class="menu-btn" type="button" data-modulo="conductores"><span class="nav-icon" aria-hidden="true">♧</span>Conductores</button>
+        <button class="menu-btn" type="button" data-modulo="rutas"><span class="nav-icon" aria-hidden="true">⌁</span>Rutas</button>
+        <button class="menu-btn" type="button" data-modulo="entregas"><span class="nav-icon" aria-hidden="true">↗</span>Entregas</button>
+        <button class="menu-btn" type="button" data-modulo="reportes"><span class="nav-icon" aria-hidden="true">▥</span>Informes</button>
+      </nav>
+
+      <div class="sidebar-note">
+        <strong>Gestión centralizada</strong>
+        Paquetes, rutas y entregas
+      </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
-    <main>
-      <div id="contenido">
-        <div class="loading"><p>Cargando...</p></div>
-      </div>
-    </main>
-  </div>
+    <div class="workspace">
+      <header class="topbar">
+        <p class="topbar-title" id="topbar-title">Centro de operaciones</p>
+        <div class="topbar-actions">
+          <div id="fecha-hora"></div>
+          <span class="topbar-user" id="topbar-user"></span>
+          <button class="logout-btn" id="logout-btn" type="button">Cerrar sesión</button>
+        </div>
+      </header>
 
-  <!-- FOOTER -->
-  <footer>
-    <p>© 2026 LOGIT - Sistema de Gestión de Paquetes y Rutas</p>
-  </footer>
+      <main>
+        <div id="contenido" aria-live="polite">
+          <div class="loading"><p>Cargando panel de operaciones...</p></div>
+        </div>
+      </main>
+
+      <footer>
+        <p>LOGIT · Sistema de gestión logística</p>
+      </footer>
+    </div>
+  </div>
 
   <!-- MODAL -->
   <div id="modal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
       <div class="modal-header">
         <h2 class="modal-title" id="modal-titulo">Título</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <p id="modal-mensaje">Mensaje</p>
+        <div id="modal-extra" hidden></div>
       </div>
       <div class="modal-footer">
         <button class="btn-modal-cerrar">Cerrar</button>
@@ -67,5 +135,7 @@
   <script src="js/conductores.js"></script>
   <script src="js/rutas.js"></script>
   <script src="js/entregas.js"></script>
+  <script src="js/despacho.js"></script>
+  <script src="js/portal-conductor.js"></script>
 </body>
 </html>

@@ -33,7 +33,7 @@ async function cargarListaVehiculos() {
           'Modelo': v.modelo,
           'Año': v.año,
           'Capacidad': v.capacidad,
-          'Estado': obtenerBadgeEstado(v.estado),
+          'Estado': obtenerBadgeEstado(v.disponibilidad || v.estado),
           'Registro': formatearFecha(v.fechaRegistro)
         })),
         ['ID', 'Placa', 'Marca', 'Modelo', 'Año', 'Capacidad', 'Estado', 'Registro'],

@@ -24,6 +24,12 @@ build/
 logs/
 *.log
 
+# Local SQLite data and backups
+data/*.db
+data/*.db-*
+data/*.sqlite
+data/*.sqlite-*
+
 # Temp
 temp/
 tmp/

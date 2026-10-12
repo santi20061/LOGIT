@@ -1,143 +1,239 @@
-const { leerJSON, escribirJSON, obtenerSiguienteId } = require('../utils/fileHandler');
+const { Op, Transaction } = require('sequelize');
+const { sequelize, Ruta, Conductor, Vehiculo, Paquete, Entrega } = require('../models');
 
-exports.obtenerTodos = (req, res) => {
+async function validarDisponibilidad(conductorId, vehiculoId, rutaId, transaction) {
+  const whereRutaActiva = { estado: { [Op.in]: ['planeada', 'en_curso'] } };
+  if (rutaId) whereRutaActiva.id = { [Op.ne]: rutaId };
+
+  const rutaConductorOcupado = await Ruta.findOne({
+    where: { ...whereRutaActiva, conductorId },
+    transaction,
+  });
+  if (rutaConductorOcupado) {
+    const error = new Error('El conductor ya tiene otra ruta planeada o en curso.');
+    error.status = 409;
+    throw error;
+  }
+
+  const rutaVehiculoOcupado = await Ruta.findOne({
+    where: { ...whereRutaActiva, vehiculoId },
+    transaction,
+  });
+  if (rutaVehiculoOcupado) {
+    const error = new Error('El vehículo ya está asignado a otra ruta planeada o en curso.');
+    error.status = 409;
+    throw error;
+  }
+}
+
+exports.obtenerTodos = async (req, res) => {
   try {
-    const rutas = leerJSON('rutas');
-    const conductores = leerJSON('conductores');
-    const vehiculos = leerJSON('vehiculos');
-
-    const rutasEnriquecidas = rutas.map(r => {
-      const conductor = conductores.find(c => c.id === r.conductorId);
-      const vehiculo = vehiculos.find(v => v.id === r.vehiculoId);
-      return {
-        ...r,
-        conductorNombre: conductor?.nombre || 'N/A',
-        vehiculoPlaca: vehiculo?.placa || 'N/A'
-      };
+    const rutas = await Ruta.findAll({
+      include: [
+        { model: Conductor, attributes: ['nombre', 'licencia'] },
+        { model: Vehiculo, attributes: ['placa', 'marca'] },
+        { model: Paquete, attributes: ['numeroSeguimiento', 'estado'] }
+      ],
+      order: [['id', 'DESC']]
     });
 
-    res.json({ success: true, data: rutasEnriquecidas, total: rutas.length });
+    res.json({ success: true, total: rutas.length, data: rutas });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener rutas' });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.obtenerPorId = (req, res) => {
+exports.obtenerPorId = async (req, res) => {
   try {
-    const rutas = leerJSON('rutas');
-    const ruta = rutas.find(r => r.id === parseInt(req.params.id));
-    if (!ruta) return res.status(404).json({ success: false, message: 'Ruta no encontrada' });
+    const ruta = await Ruta.findByPk(req.params.id, {
+      include: [
+        { model: Conductor },
+        { model: Vehiculo },
+        { model: Paquete }
+      ]
+    });
+
+    if (!ruta) {
+      return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
+    }
+
     res.json({ success: true, data: ruta });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener ruta' });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.crear = (req, res) => {
+exports.actualizar = async (req, res) => {
   try {
-    const { nombre, descripcion, conductorId, vehiculoId, zonas, horaInicio } = req.body;
-
-    if (!nombre || !conductorId || !vehiculoId) {
-      return res.status(400).json({ success: false, message: 'Faltan campos requeridos' });
+    const ruta = await Ruta.findByPk(req.params.id);
+    if (!ruta) {
+      return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
     }
 
-    const rutas = leerJSON('rutas');
-    const nuevaRuta = {
-      id: obtenerSiguienteId(rutas),
-      nombre,
-      descripcion: descripcion || '',
-      conductorId: parseInt(conductorId),
-      vehiculoId: parseInt(vehiculoId),
-      estado: 'Planificada',
-      fechaCreacion: new Date().toISOString().split('T')[0],
-      horaInicio: horaInicio || '08:00',
-      horaFin: null,
-      paquetesAsignados: [],
-      zonas: zonas || []
-    };
-
-    rutas.push(nuevaRuta);
-    escribirJSON('rutas', rutas);
-
-    res.status(201).json({ success: true, message: 'Ruta creada', data: nuevaRuta });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al crear ruta' });
-  }
-};
-
-exports.actualizarEstado = (req, res) => {
-  try {
-    const { id } = req.params;
-    const { estado, horaFin } = req.body;
-
-    const rutas = leerJSON('rutas');
-    const index = rutas.findIndex(r => r.id === parseInt(id));
-
-    if (index === -1) return res.status(404).json({ success: false, message: 'Ruta no encontrada' });
-
-    rutas[index].estado = estado;
-    if (horaFin) rutas[index].horaFin = horaFin;
-
-    escribirJSON('rutas', rutas);
-
-    res.json({ success: true, message: 'Estado actualizado', data: rutas[index] });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar ruta' });
-  }
-};
-
-exports.asignarPaquete = (req, res) => {
-  try {
-    const { id } = req.params;
-    const { paqueteId } = req.body;
-
-    const rutas = leerJSON('rutas');
-    const index = rutas.findIndex(r => r.id === parseInt(id));
-
-    if (index === -1) return res.status(404).json({ success: false, message: 'Ruta no encontrada' });
-
-    if (!rutas[index].paquetesAsignados.includes(parseInt(paqueteId))) {
-      rutas[index].paquetesAsignados.push(parseInt(paqueteId));
+    if (ruta.estado !== 'planeada') {
+      return res.status(409).json({ success: false, error: 'Solo se pueden editar rutas planeadas.' });
     }
 
-    escribirJSON('rutas', rutas);
+    const cambios = {};
+    if (typeof req.body.nombre === 'string' && req.body.nombre.trim()) {
+      cambios.nombre = req.body.nombre.trim();
+    }
+    if (typeof req.body.descripcion === 'string' || req.body.descripcion === null) {
+      cambios.descripcion = req.body.descripcion?.trim() || null;
+    }
 
-    res.json({ success: true, message: 'Paquete asignado a ruta', data: rutas[index] });
+    const conductorId = req.body.conductorId === undefined ? ruta.conductorId : Number(req.body.conductorId);
+    const vehiculoId = req.body.vehiculoId === undefined ? ruta.vehiculoId : Number(req.body.vehiculoId);
+    if (!Number.isSafeInteger(conductorId) || conductorId <= 0
+      || !Number.isSafeInteger(vehiculoId) || vehiculoId <= 0) {
+      return res.status(400).json({ success: false, error: 'Conductor o vehículo inválido.' });
+    }
+
+    await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
+      const conductor = await Conductor.findByPk(conductorId, { transaction });
+      const vehiculo = await Vehiculo.findByPk(vehiculoId, { transaction });
+      if (!conductor || !vehiculo) {
+        const error = new Error(!conductor ? 'Conductor no encontrado' : 'Vehículo no encontrado');
+        error.status = 404;
+        throw error;
+      }
+      if (vehiculo.estado !== 'disponible') {
+        const error = new Error('Solo se pueden asignar vehículos disponibles a una ruta planeada.');
+        error.status = 409;
+        throw error;
+      }
+      if (conductor.estado !== 'activo') {
+        const error = new Error('Solo se pueden asignar conductores activos a una ruta.');
+        error.status = 409;
+        throw error;
+      }
+      if (conductor.vehiculoId !== vehiculo.id) {
+        const error = new Error('La ruta debe usar el vehículo asignado al conductor.');
+        error.status = 409;
+        throw error;
+      }
+      await validarDisponibilidad(conductorId, vehiculoId, ruta.id, transaction);
+      await ruta.update({ ...cambios, conductorId, vehiculoId }, { transaction });
+    });
+
+    res.json({
+      success: true,
+      message: 'Ruta actualizada exitosamente',
+      data: ruta
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al asignar paquete' });
+    if (error.status) {
+      return res.status(error.status).json({ success: false, error: error.message });
+    }
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.iniciarRuta = (req, res) => {
+exports.cambiarEstado = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { estado } = req.body;
+    const estadosValidos = ['cancelada'];
 
-    const rutas = leerJSON('rutas');
-    const index = rutas.findIndex(r => r.id === parseInt(id));
+    if (!estadosValidos.includes(estado)) {
+      return res.status(400).json({
+        success: false,
+        error: 'El administrador puede cancelar una ruta. El conductor inicia y finaliza su recorrido.',
+      });
+    }
 
-    if (index === -1) return res.status(404).json({ success: false, message: 'Ruta no encontrada' });
+    const ruta = await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
+      const rutaActual = await Ruta.findByPk(req.params.id, { transaction });
+      if (!rutaActual) {
+        const error = new Error('Ruta no encontrada');
+        error.status = 404;
+        throw error;
+      }
+      const transiciones = {
+        planeada: ['cancelada'],
+        en_curso: ['cancelada'],
+      };
+      if (!transiciones[rutaActual.estado]?.includes(estado)) {
+        const error = new Error('La transición de estado solicitada no está permitida.');
+        error.status = 409;
+        throw error;
+      }
 
-    rutas[index].estado = 'En progreso';
-    escribirJSON('rutas', rutas);
+      const estabaEnCurso = rutaActual.estado === 'en_curso';
+      if (estado === 'cancelada' && estabaEnCurso) {
+        const entregasActivas = await Entrega.findAll({
+          where: { rutaId: rutaActual.id, estado: 'en_transito' },
+          transaction,
+        });
+        for (const entrega of entregasActivas) {
+          await entrega.update({
+            estado: 'rechazado',
+            motivoNovedad: 'ruta_cancelada',
+            fechaNovedad: new Date(),
+            observaciones: 'Visita cancelada por cierre de la ruta.',
+          }, { transaction });
+          await Paquete.update(
+            { estado: 'pendiente', rutaId: null },
+            { where: { id: entrega.paqueteId, estado: 'en_ruta' }, transaction }
+          );
+        }
+      }
+      if (estado === 'cancelada' && !estabaEnCurso) {
+        await Paquete.update(
+          { rutaId: null },
+          { where: { rutaId: rutaActual.id, estado: 'pendiente' }, transaction }
+        );
+      }
+      await rutaActual.update({
+        estado,
+        horaFin: estabaEnCurso
+          ? new Date().toLocaleTimeString('es-CO', { hour12: false })
+          : rutaActual.horaFin,
+      }, { transaction });
 
-    res.json({ success: true, message: 'Ruta iniciada', data: rutas[index] });
+      const vehiculo = await Vehiculo.findByPk(rutaActual.vehiculoId, { transaction });
+      if (estabaEnCurso && vehiculo?.estado === 'en_uso') {
+        await vehiculo.update({ estado: 'disponible' }, { transaction });
+      }
+      return rutaActual;
+    });
+
+    res.json({
+      success: true,
+      message: `Ruta actualizada a: ${estado}`,
+      data: ruta
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al iniciar ruta' });
+    if (error.status) {
+      return res.status(error.status).json({ success: false, error: error.message });
+    }
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.eliminar = (req, res) => {
+exports.eliminar = async (req, res) => {
   try {
-    let rutas = leerJSON('rutas');
-    const exists = rutas.find(r => r.id === parseInt(req.params.id));
+    const ruta = await Ruta.findByPk(req.params.id);
+    if (!ruta) {
+      return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
+    }
 
-    if (!exists) return res.status(404).json({ success: false, message: 'Ruta no encontrada' });
+    if (ruta.estado !== 'planeada') {
+      return res.status(400).json({
+        success: false,
+        error: 'Solo se pueden eliminar rutas en estado "planeada"'
+      });
+    }
 
-    rutas = rutas.filter(r => r.id !== parseInt(req.params.id));
-    escribirJSON('rutas', rutas);
+    await sequelize.transaction(async transaction => {
+      await Paquete.update(
+        { rutaId: null },
+        { where: { rutaId: ruta.id, estado: 'pendiente' }, transaction }
+      );
+      await ruta.destroy({ transaction });
+    });
 
-    res.json({ success: true, message: 'Ruta eliminada' });
+    res.json({ success: true, message: 'Ruta eliminada exitosamente' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar ruta' });
+    res.status(500).json({ success: false, error: error.message });
   }
 };

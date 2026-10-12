@@ -1,0 +1,64 @@
+<section class="customer-profile">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">Tu cuenta</span>
+      <h2>Mi perfil</h2>
+      <p>Mantén actualizados tus datos de contacto para facilitar las entregas.</p>
+    </div>
+  </div>
+
+  <form class="card" id="perfil-cliente-form">
+    <div class="card-header"><h3 class="card-title">Datos de contacto</h3></div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="perfil-nombre">Nombre completo</label>
+          <input id="perfil-nombre" name="nombre" type="text" required minlength="3" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="perfil-telefono">Teléfono</label>
+          <input id="perfil-telefono" name="telefono" type="tel" required pattern="[0-9]{10}" maxlength="10" autocomplete="tel">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="perfil-email">Correo de acceso</label>
+          <input id="perfil-email" name="email" type="email" readonly autocomplete="email">
+          <small class="field-help">Para cambiar el correo de acceso, solicita ayuda al equipo LOGIT.</small>
+        </div>
+        <div class="form-group">
+          <label for="perfil-ciudad">Ciudad</label>
+          <input id="perfil-ciudad" name="ciudad" type="text" required autocomplete="address-level2">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="perfil-direccion">Dirección</label>
+        <input id="perfil-direccion" name="direccion" type="text" required autocomplete="street-address">
+      </div>
+      <div id="perfil-mensaje" class="alert" hidden role="status"></div>
+      <button class="btn btn-primary" type="submit">Guardar datos</button>
+    </div>
+  </form>
+
+  <form class="card" id="password-cliente-form">
+    <div class="card-header"><h3 class="card-title">Cambiar contraseña</h3></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label for="password-actual">Contraseña actual</label>
+        <input id="password-actual" name="passwordActual" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="password-nueva">Nueva contraseña</label>
+          <input id="password-nueva" name="password" type="password" autocomplete="new-password" minlength="12" required>
+        </div>
+        <div class="form-group">
+          <label for="password-confirmacion">Confirmar nueva contraseña</label>
+          <input id="password-confirmacion" name="confirmarPassword" type="password" autocomplete="new-password" minlength="12" required>
+        </div>
+      </div>
+      <div id="password-mensaje" class="alert" hidden role="status"></div>
+      <button class="btn btn-secondary" type="submit">Actualizar contraseña</button>
+    </div>
+  </form>
+</section>
